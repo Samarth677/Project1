@@ -3,8 +3,9 @@
 # Project 1: LASSO Regression via the Homotopy Method
 
 GROUP MEMBERS:
-SAMARTH RAJPUT A20586237
-JENIL PANCHAL  A20598955
+SAMARTH RAJPUT                        A20586237
+JENIL PANCHAL                         A20598955
+Yashashree Reddy Karri                A20546825
 
 
 ## Overview
