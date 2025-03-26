@@ -1,119 +1,144 @@
 import numpy as np
+from sklearn.metrics import mean_squared_error, r2_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+# Main code
 
-class LassoHomotopyModel:
-    def __init__(self,
-                 lambda_max=None,
-                 lambda_min=1e-4,
-                 step_size=0.9,
-                 max_iter=1000,
-                 fit_intercept=True):
-        """
-        Parameters
-        ----------
-        lambda_max : float, optional
-            Starting value of lambda for your homotopy iteration.
-            If None, it will be computed from data.
-        lambda_min : float
-            Minimum value of lambda at which to stop.
-        step_size : float
-            Factor to reduce lambda each iteration (homotopy approach).
-        max_iter : int
-            Maximum number of iterations in your solver loop.
-        fit_intercept : bool
-            If True, automatically adds a column of 1s to X to learn an intercept.
-        """
-        self.lambda_max = lambda_max
-        self.lambda_min = lambda_min
-        self.step_size = step_size
-        self.max_iter = max_iter
-        self.fit_intercept = fit_intercept
+class LassoHomotopy:
+    def __init__(self, lambda_val=0.1):
+        self.lambda_val = lambda_val
         self.coefficients = None
-        self._n_features = None
+        self.loss_values = []
 
-    def fit(self, X, y):
-        """
-        Fits the LASSO model using a simple iterative (ISTA-like) approach with
-        homotopy-based reduction of lambda.
-
-        X is a 2D array of shape [n_samples, n_features].
-        y is a 1D array of shape [n_samples].
-        """
-        # Keep original shapes
+    def fit(self, X, y, max_iter=1000, tol=1e-4):
         n_samples, n_features = X.shape
-        self._n_features = n_features
-
-        # If requested, add a column of ones for the intercept
-        if self.fit_intercept:
-            X = np.hstack([X, np.ones((n_samples, 1))])
-            n_features = n_features + 1  # There's now an extra feature (the intercept)
-
-        # Initialize coefficients
         self.coefficients = np.zeros(n_features)
+        active_set = set()
+        residual = y - X @ self.coefficients
+        prev_loss = np.inf
 
-        # If no lambda_max is given, set it so that the first gradient step is feasible
-        if self.lambda_max is None:
-            # typical way for LASSO: max(|X.T @ y|) / n_samples
-            self.lambda_max = np.max(np.abs(X.T @ y)) / n_samples
+        for _ in range(max_iter):
+            correlations = X.T @ residual
+            max_corr_idx = np.argmax(np.abs(correlations))
 
-        # Decide on a stable learning rate using an approximation of the largest eigenvalue of X^T X
-        # The largest eigenvalue can be approximated by the square of the 2-norm of X
-        largest_eig_approx = np.linalg.norm(X, 2) ** 2
-        learning_rate = 1.0 / largest_eig_approx
-
-        lambda_current = self.lambda_max
-
-        for iteration in range(self.max_iter):
-            # Stop if lambda is below the minimum threshold
-            if lambda_current < self.lambda_min:
+            if np.abs(correlations[max_corr_idx]) < self.lambda_val:
+                print("Converged based on the lambda threshold value.")
                 break
 
-            # Compute residual and gradient
-            # residual = y - X @ coef
+            active_set.add(max_corr_idx)
+            X_active = X[:, list(active_set)]
+            theta_active = np.linalg.pinv(X_active) @ y
+            self.coefficients[list(active_set)] = theta_active.flatten()
             residual = y - X @ self.coefficients
-            gradient = (X.T @ residual) / n_samples  # size: [n_features]
+            loss = np.mean(residual ** 2)
+            self.loss_values.append(loss)
 
-            # Take a gradient step
-            updated = self.coefficients + learning_rate * gradient
-
-            # Soft-threshold the result
-            # Note: we multiply lambda by learning_rate as per ISTA formula
-            self.coefficients = self._soft_threshold(updated, lambda_current * learning_rate)
-
-            # Decay lambda for next iteration
-            lambda_current *= self.step_size
-
-        return LassoHomotopyResults(self.coefficients, self.fit_intercept, self._n_features)
-
-    def _soft_threshold(self, z, threshold):
-        """Soft-thresholding operator."""
-        return np.sign(z) * np.maximum(np.abs(z) - threshold, 0.0)
-
-
-class LassoHomotopyResults:
-    def __init__(self, coefficients, fit_intercept, original_n_features):
-        """
-        Parameters
-        ----------
-        coefficients : np.ndarray
-            The fitted coefficients, possibly including intercept if fit_intercept=True.
-        fit_intercept : bool
-            Whether an intercept term was included.
-        original_n_features : int
-            Number of original features (excluding intercept).
-        """
-        self.coefficients = coefficients
-        self.fit_intercept = fit_intercept
-        self.original_n_features = original_n_features
+            if abs(prev_loss - loss) < tol:
+                print("Converged based on the tolerance value.")
+                break
+            prev_loss = loss
+        else:
+            print("Reached the max no of iterations.")
 
     def predict(self, X):
-        """
-        Predict using the trained coefficients.
-
-        If fit_intercept is True, we assume the last coefficient is the intercept.
-        """
-        if self.fit_intercept:
-            # Add a column of ones for intercept
-            n_samples = X.shape[0]
-            X = np.hstack([X, np.ones((n_samples, 1))])
-
         return X @ self.coefficients
+
+    def evaluate(self, X, y):
+        y_pred = self.predict(X)
+        mse = mean_squared_error(y, y_pred)
+        r2 = r2_score(y, y_pred)
+        print(f"The Mean Squared Error value will be: {mse:.4f}")
+        print(f"The R² Score will be: {r2:.4f}")
+        return mse, r2
+
+    def plot_coefficients(self):
+        plt.figure(figsize=(8, 5))
+        sns.barplot(x=np.arange(len(self.coefficients)), y=self.coefficients, hue=np.arange(len(self.coefficients)), palette="viridis", legend=False)
+        plt.xlabel("Feature Index")
+        plt.ylabel("Coefficient Value")
+        plt.title(f"LASSO Coefficients (λ={self.lambda_val})")
+        plt.axhline(0, color="black", linestyle="--", linewidth=1)
+        plt.show()
+
+    def plot_predictions(self, X, y):
+        y_pred = self.predict(X)
+        plt.figure(figsize=(6, 6))
+        plt.scatter(y, y_pred, alpha=0.7)
+        plt.plot(y, y, color="red", linestyle="--")
+        plt.xlabel("Actual Values")
+        plt.ylabel("Predicted Values")
+        plt.title("LASSO Predictions vs. Actual")
+        plt.show()
+
+    def plot_residuals(self, y_true, y_pred):
+        residuals = y_true - y_pred
+        plt.figure(figsize=(8, 6))
+        sns.scatterplot(x=y_pred, y=residuals, color="blue")
+        plt.axhline(0, color='red', linestyle='--')
+        plt.xlabel("Predicted Values")
+        plt.ylabel("Residuals")
+        plt.title("Residual Plot")
+        plt.show()
+
+    
+    def plot_true_vs_learned(self, true_coefficients):
+        """Ploting the graph btw true coefficients vs. learned coefficients."""
+        plt.figure(figsize=(8, 5))
+        plt.scatter(true_coefficients, self.coefficients, alpha=0.7, color='blue')
+        plt.plot(true_coefficients, true_coefficients, linestyle="--", color="red", label="Ideal Fit")
+        plt.xlabel("True Coefficients")
+        plt.ylabel("Learned Coefficients")
+        plt.title("True vs. Learned Coefficients")
+        plt.legend()
+        plt.show()
+
+    def plot_coefficient_comparison(self, true_coefficients):
+        """Ploting the graph btw coefficient comparison (true vs learned)."""
+        plt.figure(figsize=(8, 5))
+        plt.plot(true_coefficients, label="True Coefficients", marker='o')
+        plt.plot(self.coefficients, label="Learned Coefficients", marker='x')
+        plt.xlabel("Feature Index")
+        plt.ylabel("Coefficient Value")
+        plt.title("Coefficient Comparison")
+        plt.legend()
+        plt.show()
+
+    def plot_convergence(self):
+        plt.figure(figsize=(8, 6))
+        plt.plot(range(len(self.loss_values)), self.loss_values, marker='o', linestyle='-', color="green")
+        plt.xlabel("Iteration")
+        plt.ylabel("Loss")
+        plt.title("Convergence of LASSO Homotopy Algorithm")
+        plt.grid()
+        plt.show()
+
+
+if __name__ == "__main__":
+    print("Machine Learning Assignment...")
+
+    # Generate synthetic dataset
+    np.random.seed(42)
+    X = np.random.randn(50, 10)
+    true_coefficients = np.array([1.5, -2.0, 0, 0, 3.0, 0, 0, -1.2, 0, 2.5])
+    y = X @ true_coefficients + np.random.randn(50) * 0.1  # Add small Gaussian noise
+
+    # Initialize and train the model
+    model = LassoHomotopy(lambda_val=0.1)
+    model.fit(X, y)
+
+    # Evaluate performance
+    model.evaluate(X, y)
+
+    # Print learned coefficients
+    print("true coefficients:", true_coefficients)
+    print("Learned Coefficients:", model.coefficients)
+    print(f"Number of Non-Zero Coefficients: {np.sum(model.coefficients != 0)}")
+
+    # Plotting results
+    model.plot_coefficients()
+    model.plot_predictions(X, y)
+    model.plot_residuals(y, model.predict(X))
+    model.plot_convergence()
+    
+    model.plot_true_vs_learned(true_coefficients)
+    model.plot_coefficient_comparison(true_coefficients)
