@@ -158,45 +158,63 @@ These visualizations provide comprehensive diagnostic insights into model perfor
 
 ### 1. What does your model do, and when should it be used?
 
-The LASSO model:
+**The LASSO model:**
+- Fits a linear regression model to the data
+- Adds an L1 penalty to the loss function, which encourages sparsity in the coefficients
+- Uses the Homotopy Method to iteratively reduce the regularization parameter (lambda) and find the optimal solution path
 
-Fits a linear regression model to the data.
+**When Should It Be Used?**
+- With high-dimensional data (many features) where feature selection is needed
+- When you need a sparse model (few non-zero coefficients) for better interpretability
+- To prevent overfitting by adding regularization
+- For datasets where feature importance analysis is valuable
 
-Adds an L1 penalty to the loss function, which encourages sparsity in the coefficients.
-
-Uses the Homotopy Method to iteratively reduce the regularization parameter (lambda) and find the optimal solution path.
-
-When Should It Be Used?
-When you have high-dimensional data (many features) and want to perform feature selection.
-
-When you need a sparse model (few non-zero coefficients) for better interpretability.
-
-When you want to prevent overfitting by adding regularization.
+---
 
 ### 2. How did you test your model?
 
-# Testing the Model
-
+#### Testing Methodology
 The model was tested using:
 
-- **Synthetic Data:** Simple datasets to validate predictions and feature suppression.
-- **Collinear Data:** Ensures the model suppresses redundant features.
-- **Noisy Data:** Validates the model's ability to ignore irrelevant features.
-- **Realistic Data:** Tests on the `extra_test.csv` file to ensure practical performance.
+1. **Synthetic Data**
+   - Simple controlled datasets to validate predictions
+   - Verified feature suppression capability
+
+2. **Collinear Data**  
+   - Ensures the model properly suppresses redundant features
+   - Tests handling of multicollinearity
+
+3. **Noisy Data**
+   - Validates robustness against irrelevant features
+   - Confirms ability to ignore non-predictive variables
+
+4. **Realistic Data** (`extra_test.csv`)
+   - Tests practical performance on real-world style data
+   - Validates end-to-end functionality
+
+---
 
 ### 3. What parameters have you exposed for tuning performance?
 
-The LassoHomotopyModel class exposes the following parameters for tuning:
+The `LassoHomotopyModel` class exposes these tunable parameters:
 
-lambda_max: Starting value of the regularization parameter. Controls the strength of the L1 penalty.
+| Parameter | Description | Default Value |
+|-----------|-------------|---------------|
+| `lambda_max` | Starting regularization strength | None (auto-calculated) |
+| `lambda_min` | Minimum lambda value | 1e-4 |
+| `step_size` | Lambda reduction factor per iteration | 0.9 |
+| `max_iter` | Maximum solver iterations | 1000 |
+| `fit_intercept` | Whether to fit intercept term | True |
 
-lambda_min: Minimum value of the regularization parameter. Determines when to stop the homotopy iterations.
-
-step_size: Factor by which lambda is reduced in each iteration. Controls the speed of the homotopy process.
-
-max_iter: Maximum number of iterations for the solver.
-
-fit_intercept: Whether to fit an intercept term. Default is True.
+Example usage:
+```python
+model = LassoHomotopyModel(
+    lambda_max=0.1,
+    lambda_min=1e-5,
+    step_size=0.95,
+    max_iter=500,
+    fit_intercept=True
+)
 
 ### 4. Are there specific inputs your implementation struggles with?
 
