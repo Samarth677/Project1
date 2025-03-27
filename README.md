@@ -127,6 +127,32 @@ max_iter: Maximum number of iterations for the solver.
 
 fit_intercept: Whether to fit an intercept term. Default is True.
 
+## Bonus: Data Visualization
+
+In addition to the core implementation, I included bonus data visualizations to enhance the analysis:
+
+### 1. Regularization Path
+- Traces how coefficients change across different lambda values
+- Helps visualize feature importance and sparsity patterns
+- Identifies optimal regularization strength
+
+### 2. Residual Plots
+- Compares model residuals vs predicted values
+- Checks for homoscedasticity and pattern detection
+- Validates model assumptions
+
+### 3. Actual vs Predicted Values
+- Scatter plot with reference line for ideal predictions
+- Visual assessment of prediction accuracy
+- Identifies systematic errors or outliers
+
+### 4. Correlation Heatmap
+- Shows feature intercorrelations
+- Helps detect multicollinearity issues
+- Guides feature selection decisions
+
+These visualizations provide comprehensive diagnostic insights into model performance and dataset characteristics.
+
 ## Project Questions
 
 ### 1. What does your model do, and when should it be used?
