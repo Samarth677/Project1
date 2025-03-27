@@ -206,41 +206,25 @@ The `LassoHomotopyModel` class exposes these tunable parameters:
 | `max_iter` | Maximum solver iterations | 1000 |
 | `fit_intercept` | Whether to fit intercept term | True |
 
-Example usage:
-```python
-model = LassoHomotopyModel(
-    lambda_max=0.1,
-    lambda_min=1e-5,
-    step_size=0.95,
-    max_iter=500,
-    fit_intercept=True
-)
-
 ### 4. Are there specific inputs your implementation struggles with?
 
-Limitations and Challenges
-Collinear Features:
+## Limitations and Challenges
 
-The model may struggle with highly collinear features, as it can only suppress one of them.
+### Collinear Features
+- The model may struggle with highly collinear features, as it can only suppress one of them.  
+- **Workaround:** Use stronger regularization (`lambda_max`) or preprocess data (e.g., PCA).
 
-Workaround: Use stronger regularization (lambda_max) or preprocess data (e.g., PCA).
+### Large Datasets
+- The homotopy method can be slow for very large datasets.  
+- **Workaround:** Use faster optimization techniques (e.g., coordinate descent).
 
-Large Datasets:
+### Non-Linear Relationships
+- LASSO is designed for linear relationships. Non-linear data may require transformations or other models.  
+- **Workaround:** Use polynomial features or switch to non-linear models.
 
-The homotopy method can be slow for very large datasets.
+## Future Improvements
+- **Optimization:** Implement faster solvers (e.g., coordinate descent) for large datasets.
+- **Cross-Validation:** Add support for automated hyperparameter tuning.
+- **Non-Linear Extensions:** Extend the model to handle non-linear relationships.
 
-Workaround: Use faster optimization techniques (e.g., coordinate descent).
-
-Non-Linear Relationships:
-
-LASSO is designed for linear relationships. Non-linear data may require transformations or other models.
-
-Workaround: Use polynomial features or switch to non-linear models.
-
-Future Improvements
-Optimization: Implement faster solvers (e.g., coordinate descent) for large datasets.
-
-Cross-Validation: Add support for automated hyperparameter tuning.
-
-Non-Linear Extensions: Extend the model to handle non-linear relationships.
 
